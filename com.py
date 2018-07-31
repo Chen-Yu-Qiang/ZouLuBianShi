@@ -219,17 +219,26 @@ def randdata(adata):
             newdata[p]+=[adata[p][tdata[i]]]
     return newdata
 
-def cutdata(adata,TrainDataFrom=0,TrainDataEnd=400,TestDataFrom=400,TestDataEnd=467):
-    #TrainDataFrom=0  訓練從
-    #TrainDataEnd=400 訓練到(不含)
+def cutdata(adata,TrainDataFrom=0,TrainDataEnd=-1,TestDataFrom=-1,TestDataEnd=-1):
+    if TrainDataEnd==-1:
+        dlen=[]
+        for i in range(len(adata)):
+            dlen+=[len(adata[i])]
+            
+        TrainDataEnd=min(dlen)//2
+    if TestDataFrom==-1:
+        TestDataFrom=TrainDataEnd
     bdata=[0 for i in range(len(adata))]
     for i in range(len(adata)):
-        bdata[i]=adata[i][TrainDataFrom:TrainDataEnd]
-    #TestDataFrom=400 測試從
-    #TestDataEnd=467  測試到(不含)
-    cdata=[0 for i in range(len(adata))]
-    for i in range(len(adata)):
-        cdata[i]=adata[i][TestDataFrom:TestDataEnd]
+            bdata[i]=adata[i][TrainDataFrom:TrainDataEnd]
+    if TestDataEnd==-1:
+        cdata=[0 for i in range(len(adata))]
+        for i in range(len(adata)):
+            cdata[i]=adata[i][TestDataFrom:len(adata[i])]        
+    else:
+        cdata=[0 for i in range(len(adata))]
+        for i in range(len(adata)):
+            cdata[i]=adata[i][TestDataFrom:TestDataEnd]
     return bdata,cdata
 #列印結果
 def printres(res,table=1,rec=1,pre=1,acc=1):
@@ -247,6 +256,8 @@ def printres(res,table=1,rec=1,pre=1,acc=1):
             r+=res[i][j]
             p+=res[j][i]
         recall+=[res[i][i]/r]
+        if p==0:
+            p=1
         precision+=[res[i][i]/p]
     if rec==1:
         print("召回率")
@@ -254,20 +265,25 @@ def printres(res,table=1,rec=1,pre=1,acc=1):
     if pre==1:
         print("精確率")
         print(precision)
+    ZQL=0
+    tot=0
+    isright=0
+    for i in range(len(res)):
+        for j in range(len(res[i])):
+            tot+=res[i][j]
+            if i==j:
+                isright+=res[i][j]
+        ZQL=isright/tot
     if acc==1:
-        tot=0
-        isright=0
-        for i in range(len(res)):
-            for j in range(len(res[i])):
-                tot+=res[i][j]
-                if i==j:
-                    isright+=res[i][j]
-        print("準確率",isright/tot)
+        print("準確率",ZQL)
     f1=[]
     for i in range(len(recall)):
-        f1+=[2/((1/recall[i])+(1/precision[i]))]
+        if recall[i]==0 or precision[i]==0:
+            f1+=[0]
+        else:
+            f1+=[2/((1/recall[i])+(1/precision[i]))]
     print("f1平均為:",float(sum(f1))/len(f1))
-    return {"ZHL":recall,"JQL":precision,"f1TH":f1,"f1THPJ":float(sum(f1))/len(f1)}
+    return {"ZHL":recall,"JQL":precision,"ZQL":ZQL,"f1TH":f1,"f1THPJ":float(sum(f1))/len(f1)}
 def HT(x,y,xlabel,ylabel,title=""):
     import matplotlib.pyplot as plt
     if title=="":
@@ -279,7 +295,14 @@ def HT(x,y,xlabel,ylabel,title=""):
     plt.grid(True)
     plt.savefig(title, dpi=600)
     plt.show()
-
+def divdata(adata):
+    data = []
+    label = []
+    for i in range(len(adata)):
+        for j in range(len(adata[i])):
+            data += [adata[i][j]]
+            label += [i]
+    return data, label
 class KNN:
     def __init__(self,data):
         self.data=data
